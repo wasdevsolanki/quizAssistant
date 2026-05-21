@@ -1,35 +1,27 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+        headerShown:            false,
+        tabBarActiveTintColor:  '#0ebafc',
+        tabBarInactiveTintColor:'#adb5bd',
+        tabBarStyle: {
+          paddingBottom: insets.bottom,
+          height: 60 + insets.bottom,
+        },
+      }}
+    >
+      <Tabs.Screen name="index"    options={{ title: 'Home',       tabBarIcon: ({ color, size }) => <Ionicons name="home-outline"          size={size} color={color} /> }} />
+      <Tabs.Screen name="category" options={{ title: 'Categories', tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline"          size={size} color={color} /> }} />
+      <Tabs.Screen name="history"  options={{ title: 'History',    tabBarIcon: ({ color, size }) => <Ionicons name="time-outline"          size={size} color={color} /> }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings',   tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline"      size={size} color={color} /> }} />
+      <Tabs.Screen name="about" options={{ title: 'About',   tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline"      size={size} color={color} /> }} />
     </Tabs>
   );
 }
