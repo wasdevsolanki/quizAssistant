@@ -4,12 +4,12 @@ export interface QuizQuestion {
   options:      string[];
   correctIndex: number;
   rationale:    string;
+  category:     string;   // ← add this line
 }
 
 // DB-enriched shape (what all screens consume)
 export interface Question extends QuizQuestion {
-  id:       number;
-  category: string;
+  id: number;
 }
 
 export interface CategorySummary {
@@ -27,14 +27,14 @@ export interface HistoryEntry {
   total:   number;
   pct:     number;
   passed:  boolean;
+  label:   string;
 }
 
-// ✅ New — for update system
 export interface QuestionsManifest {
-  version:    string;   // e.g. "1.2.0"
+  version:    string;
   totalCount: number;
   updatedAt:  string;
-  url:        string;   // full JSON download URL
+  url:        string;
 }
 
 export type UpdateStatus =

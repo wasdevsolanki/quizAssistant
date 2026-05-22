@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Copy-Item \"screens\\\\SetupScreen.tsx\"  \"app\\\\index.tsx\"  -Force)",
+      "PowerShell(Copy-Item \"screens\\\\QuizScreen.tsx\"   \"app\\\\quiz.tsx\"   -Force)",
+      "PowerShell(Copy-Item \"screens\\\\ResultScreen.tsx\" \"app\\\\result.tsx\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"app\\\\\\(tabs\\)\")",
+      "Bash(npx expo *)",
+      "Bash(del \"d:\\\\assistantQuiz\\\\hooks\\\\useQuestions.ts\")",
+      "Bash(cd /d d:\\\\assistantQuiz)",
+      "Bash(npm install *)",
+      "Bash(npx eas-cli@latest build:view a9d4dd65-cfa2-4e43-b0ec-0af0ff9df560 --json)",
+      "Bash(curl -s \"https://storage.googleapis.com/eas-workflows-production/logs/df1e0892-8269-43f9-ade0-a50010031b5e/a9d4dd65-cfa2-4e43-b0ec-0af0ff9df560/2026-05-21T10%3A17%3A47Z-f4c58814-94ef-4d14-8bd2-c1f13c248f8a.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260521%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260521T102109Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=434c3efefb47d7760dcd31263ffcfc0ea2d0c122149f70444e48924e366b921b21cbd69458abb198362280202c85174be45f5cf3af47fe55b1eccc14a7784399548fd121f1bf20dc8df53a7b27c1782e861a9c2b4098136fcb3aec342c86a7ff6c1d3fb33016eec9460f982f437ced4392e6e0fc882f612ab04423e6f01db07d84c6a3fd403f7de225de3cd7b3dd7dad75778d341e375d3064fb4878eb21b4146a41eda12fd25201211d77004ba5929a01e3842c7374f5aedf4d4782ddc9ec75704b769bf4f74c33a38a8759fcefdd89a1eb4c0db9948c871cc2ae939c1a0bde79eba9dc7d63dca8d4b9f27033ce9eb494af0c3552f399501a5c4d7c684121e5\")",
+      "Bash(curl -s --compressed \"https://storage.googleapis.com/eas-workflows-production/logs/df1e0892-8269-43f9-ade0-a50010031b5e/a9d4dd65-cfa2-4e43-b0ec-0af0ff9df560/2026-05-21T10%3A17%3A47Z-f4c58814-94ef-4d14-8bd2-c1f13c248f8a.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260521%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260521T102109Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=434c3efefb47d7760dcd31263ffcfc0ea2d0c122149f70444e48924e366b921b21cbd69458abb198362280202c85174be45f5cf3af47fe55b1eccc14a7784399548fd121f1bf20dc8df53a7b27c1782e861a9c2b4098136fcb3aec342c86a7ff6c1d3fb33016eec9460f982f437ced4392e6e0fc882f612ab04423e6f01db07d84c6a3fd403f7de225de3cd7b3dd7dad75778d341e375d3064fb4878eb21b4146a41eda12fd25201211d77004ba5929a01e3842c7374f5aedf4d4782ddc9ec75704b769bf4f74c33a38a8759fcefdd89a1eb4c0db9948c871cc2ae939c1a0bde79eba9dc7d63dca8d4b9f27033ce9eb494af0c3552f399501a5c4d7c684121e5\")",
+      "Bash(python3 -c \"import sys,json; [print\\(json.loads\\(l\\).get\\('msg',''\\)\\) for l in sys.stdin if l.strip\\(\\)]\")",
+      "Bash(node -e \"const rl=require\\('readline'\\).createInterface\\({input:process.stdin}\\);rl.on\\('line',l=>{try{const o=JSON.parse\\(l\\);if\\(o.msg\\)console.log\\(o.phase+'|'+o.msg\\)}catch{}}\\)\")",
+      "Bash(npx eas-cli@latest build:view dcc9ffe4-abb3-405d-85ce-89f8c29fd5b4 --json)",
+      "Bash(git add *)"
+    ]
+  }
+}

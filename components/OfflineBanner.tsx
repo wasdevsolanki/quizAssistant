@@ -4,20 +4,23 @@ import NetInfo from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OfflineBanner() {
-  const [isOffline, setIsOffline]   = useState(false);
-  const slideAnim                   = useState(new Animated.Value(-50))[0];
+  const [isOffline, setIsOffline] = useState(false);
+  const slideAnim = useState(new Animated.Value(-50))[0];
+
+  const applyState = (connected: boolean | null) => {
+    const offline = connected === false;
+    setIsOffline(offline);
+    Animated.timing(slideAnim, {
+      toValue: offline ? 0 : -50,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
 
   useEffect(() => {
-    const unsub = NetInfo.addEventListener(state => {
-      const offline = !state.isConnected;
-      setIsOffline(offline);
-
-      Animated.timing(slideAnim, {
-        toValue:        offline ? 0 : -50,
-        duration:       300,
-        useNativeDriver: true,
-      }).start();
-    });
+    // Check real state at mount so banner shows immediately if already offline
+    NetInfo.fetch().then(state => applyState(state.isConnected));
+    const unsub = NetInfo.addEventListener(state => applyState(state.isConnected));
     return unsub;
   }, []);
 

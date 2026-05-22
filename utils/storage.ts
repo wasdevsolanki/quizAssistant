@@ -1,36 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { QuizQuestion } from '../types';
+import type { SQLiteDatabase } from 'expo-sqlite';
 
-const KEYS = {
-  QUESTIONS:         'quiz_questions_data',
-  QUESTIONS_VERSION: 'quiz_questions_version',
-  QUESTIONS_COUNT:   'quiz_questions_count',
-};
-
-export const getStoredQuestions = async (): Promise<QuizQuestion[] | null> => {
-  try {
-    const raw = await AsyncStorage.getItem(KEYS.QUESTIONS);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-export const saveQuestions = async (
-  questions: QuizQuestion[],
-  version: string,
-): Promise<void> => {
-  await AsyncStorage.multiSet([
-    [KEYS.QUESTIONS,         JSON.stringify(questions)],
-    [KEYS.QUESTIONS_VERSION, version],
-    [KEYS.QUESTIONS_COUNT,   String(questions.length)],
-  ]);
-};
+const VERSION_KEY = 'quiz_questions_version';
 
 export const getStoredVersion = async (): Promise<string> =>
-  (await AsyncStorage.getItem(KEYS.QUESTIONS_VERSION)) ?? '1.0.0';
+  (await AsyncStorage.getItem(VERSION_KEY)) ?? '1.0.0';
 
-export const getStoredCount = async (): Promise<number> => {
-  const val = await AsyncStorage.getItem(KEYS.QUESTIONS_COUNT);
-  return val ? Number(val) : 0;
+export const saveVersion = async (version: string): Promise<void> => {
+  await AsyncStorage.setItem(VERSION_KEY, version);
+};
+
+// Pass db directly — no dynamic import needed
+export const getStoredCount = async (db: SQLiteDatabase): Promise<number> => {
+  try {
+    const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM questions');
+    return row?.n ?? 0;
+  } catch {
+    return 0;
+  }
 };

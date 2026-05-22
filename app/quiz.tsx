@@ -12,9 +12,11 @@ export default function QuizScreen() {
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const db      = useSQLiteContext();
-  const params  = useLocalSearchParams<{ startIndex: string; endIndex: string }>();
+  const params  = useLocalSearchParams<{ startIndex: string; endIndex: string; label: string; shuffle: string }>();
   const startIndex = Number(params.startIndex);
   const endIndex   = Number(params.endIndex);
+  const label      = params.label ?? '';
+  const doShuffle  = params.shuffle === '1';
 
   const [questions,  setQuestions]  = useState<Question[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -32,8 +34,11 @@ export default function QuizScreen() {
 
   useEffect(() => {
     getQuestionSlice(db, startIndex, endIndex).then(qs => {
-      setQuestions(qs);
-      setAnswered(new Array(qs.length).fill(null));
+      const ordered = doShuffle
+        ? [...qs].sort(() => Math.random() - 0.5)
+        : qs;
+      setQuestions(ordered);
+      setAnswered(new Array(ordered.length).fill(null));
       setLoading(false);
     });
   }, []);
@@ -94,7 +99,7 @@ export default function QuizScreen() {
     const next = currentIndex + dir;
     if (next >= questions.length) {
       router.push({ pathname: '/result',
-        params: { finalScore: score, total: questions.length, startIndex, endIndex } });
+        params: { finalScore: score, total: questions.length, startIndex, endIndex, label } });
       return;
     }
     if (next < 0) return;

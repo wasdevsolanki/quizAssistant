@@ -128,7 +128,10 @@ function HistoryRow({ entry: h, index: i }: { entry: HistoryEntry; index: number
       styles.tableRow, i % 2 === 0 && styles.tableRowAlt,
       { opacity: rowAnim, transform: [{ translateX: rowAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] },
     ]}>
-      <Text style={[styles.tdCell, { flex: 2, fontSize: 11 }]}>{h.date}</Text>
+      <View style={{ flex: 2 }}>
+        <Text style={[styles.tdCell, { fontSize: 11 }]}>{h.date}</Text>
+        {!!h.label && <Text style={styles.tdLabel}>{h.label}</Text>}
+      </View>
       <Text style={[styles.tdCell, { flex: 1.1 }]}>Q{h.start}–{h.end}</Text>
       <Text style={[styles.tdCell, { flex: 0.9, textAlign: 'center', fontWeight: '700', color: '#1e3c72' }]}>{h.pct}%</Text>
       <View style={{ flex: 0.8, alignItems: 'center', justifyContent: 'center' }}>
@@ -185,6 +188,7 @@ const styles = StyleSheet.create({
   tableHead:   { borderBottomWidth: 2, borderBottomColor: '#e8edf5' },
   thCell:      { fontSize: 10, fontWeight: '800', color: '#8a9ab5', paddingHorizontal: 4, letterSpacing: 0.5 },
   tdCell:      { fontSize: 12, color: '#1a2340', paddingHorizontal: 4 },
+  tdLabel:     { fontSize: 10, color: '#1e3c72', fontWeight: '600', paddingHorizontal: 4, marginTop: 2 },
 
   badgePass:     { backgroundColor: '#dcfce7', borderRadius: 8, width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
   badgeFail:     { backgroundColor: '#fee2e2', borderRadius: 8, width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },

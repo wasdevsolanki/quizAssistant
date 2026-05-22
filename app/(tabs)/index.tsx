@@ -1,179 +1,154 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, StatusBar, Animated,
+  View, Text, TouchableOpacity, ScrollView,
+  StyleSheet, StatusBar, Animated, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
-import { getQuestionCount } from '../../db/database';
+import { getCategorySummaries, getQuestionCount, type CategorySummary } from '../../db/database';
+
+const META: Record<string, { emoji: string; color: string; accent: string }> = {
+  'Pakistan Geography':     { emoji: '🗺️', color: '#e8f4fd', accent: '#1e88e5' },
+  'History & Constitution': { emoji: '📜', color: '#fef3e2', accent: '#f57c00' },
+  'Everyday Science':       { emoji: '🔬', color: '#e8f5e9', accent: '#2e7d32' },
+  'Current Affairs':        { emoji: '🌐', color: '#fce4ec', accent: '#c2185b' },
+  'General Knowledge':      { emoji: '💡', color: '#ede7f6', accent: '#6a1b9a' },
+};
+const FALLBACK = { emoji: '📚', color: '#e8eeff', accent: '#1e3c72' };
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const db     = useSQLiteContext();
-  const [totalCount, setTotalCount] = useState(0);
-  const [startQ, setStartQ] = useState<string>('1');
-  const [endQ,   setEndQ]   = useState<string>('');
 
-  useEffect(() => {
-    getQuestionCount(db).then(n => {
-      setTotalCount(n);
-      setEndQ(String(n));
-    });
-  }, []);
-  const [startFocused, setStartFocused] = useState(false);
-  const [endFocused, setEndFocused] = useState(false);
+  const [categories, setCategories] = useState<CategorySummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading,    setLoading]    = useState(true);
+  const [shuffle,    setShuffle]    = useState(false);
 
   const headerAnim = useRef(new Animated.Value(0)).current;
-  const cardAnim = useRef(new Animated.Value(0)).current;
-  const btnScale = useRef(new Animated.Value(1)).current;
+  const listAnim   = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.stagger(120, [
-      Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      Animated.spring(cardAnim,   { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-    ]).start();
+    Promise.all([getCategorySummaries(db), getQuestionCount(db)]).then(([cats, total]) => {
+      setCategories(cats);
+      setTotalCount(total);
+      setLoading(false);
+      Animated.stagger(100, [
+        Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+        Animated.spring(listAnim,   { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      ]).start();
+    });
   }, []);
 
-  const handleStart = (): void => {
-    const s = parseInt(startQ);
-    const e = parseInt(endQ);
-    if (isNaN(s) || isNaN(e)) { Alert.alert('Invalid Input', 'Please enter valid question numbers.'); return; }
-    if (s < 1 || e < s)       { Alert.alert('Invalid Range', 'Start must be ≥ 1 and End must be ≥ Start.'); return; }
-    if (e > totalCount)  { Alert.alert('Out of Range', `End cannot exceed total questions (${totalCount}).`); return; }
-    router.push({ pathname: '/quiz', params: { startIndex: s, endIndex: e } });
+  const startCategory = (firstId: number, lastId: number, label: string) => {
+    router.push({ pathname: '/quiz', params: { startIndex: firstId, endIndex: lastId, label, shuffle: shuffle ? '1' : '0' } });
   };
-
-  const handleBtnPress = () => {
-    Animated.sequence([
-      Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true, tension: 200, friction: 10 }),
-      Animated.spring(btnScale, { toValue: 1,    useNativeDriver: true, tension: 200, friction: 10 }),
-    ]).start(handleStart);
-  };
-
-  const totalQuestions = parseInt(endQ || '0') - parseInt(startQ || '0') + 1;
-  const validRange = !isNaN(totalQuestions) && totalQuestions > 0;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0f2152" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        <Animated.View style={[styles.header, { paddingTop: insets.top + 16 }, {
-          opacity: headerAnim,
-          transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }],
-        }]}>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>SPSC PREP</Text>
+      <Animated.View style={[styles.header, { paddingTop: insets.top + 16 }, {
+        opacity: headerAnim,
+        transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }],
+      }]}>
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>SPSC PREP</Text>
+        </View>
+        <Text style={styles.headerTitle}>Quiz{'\n'}Portal</Text>
+        <Text style={styles.headerSub}>Pick a topic and start practising</Text>
+
+        <TouchableOpacity
+          style={[styles.shuffleToggle, shuffle && styles.shuffleToggleOn]}
+          onPress={() => setShuffle(s => !s)}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.shuffleToggleText}>{shuffle ? '🔀 Shuffle ON' : '🔀 Shuffle OFF'}</Text>
+        </TouchableOpacity>
+
+        <View style={styles.headerStats}>
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatNum}>{totalCount || '—'}</Text>
+            <Text style={styles.headerStatLabel}>Questions</Text>
           </View>
-          <Text style={styles.headerTitle}>Quiz{'\n'}Portal</Text>
-          <Text style={styles.headerSub}>Comprehensive Practice & Evaluation</Text>
-          <View style={styles.headerStats}>
-            <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatNum}>{totalCount}</Text>
-              <Text style={styles.headerStatLabel}>Questions</Text>
-            </View>
-            <View style={styles.headerStatDivider} />
-            <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatNum}>65%</Text>
-              <Text style={styles.headerStatLabel}>Pass Mark</Text>
-            </View>
-            <View style={styles.headerStatDivider} />
-            <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatNum}>4</Text>
-              <Text style={styles.headerStatLabel}>Options</Text>
-            </View>
+          <View style={styles.headerStatDivider} />
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatNum}>65%</Text>
+            <Text style={styles.headerStatLabel}>Pass Mark</Text>
           </View>
-        </Animated.View>
-
-        <Animated.View style={[styles.card, {
-          opacity: cardAnim,
-          transform: [{ translateY: cardAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
-        }]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <Text style={styles.cardIcon}>⚙️</Text>
-            </View>
-            <View>
-              <Text style={styles.cardTitle}>Session Setup</Text>
-              <Text style={styles.cardSub}>Set your question range</Text>
-            </View>
+          <View style={styles.headerStatDivider} />
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatNum}>{categories.length || '—'}</Text>
+            <Text style={styles.headerStatLabel}>Categories</Text>
           </View>
+        </View>
+      </Animated.View>
 
-          <View style={styles.inputRow}>
-            <View style={styles.inputWrap}>
-              <Text style={styles.inputLabel}>FROM</Text>
-              <TextInput
-                style={[styles.input, startFocused && styles.inputFocused]}
-                keyboardType="number-pad"
-                value={startQ}
-                onChangeText={setStartQ}
-                maxLength={4}
-                placeholder="1"
-                placeholderTextColor="#b0bec5"
-                onFocus={() => setStartFocused(true)}
-                onBlur={() => setStartFocused(false)}
-              />
-              <Text style={styles.inputHint}>Start Q#</Text>
-            </View>
-            <View style={styles.inputArrow}>
-              <Text style={styles.inputArrowText}>→</Text>
-            </View>
-            <View style={styles.inputWrap}>
-              <Text style={styles.inputLabel}>TO</Text>
-              <TextInput
-                style={[styles.input, endFocused && styles.inputFocused]}
-                keyboardType="number-pad"
-                value={endQ}
-                onChangeText={setEndQ}
-                maxLength={4}
-                placeholder={String(totalCount)}
-                placeholderTextColor="#b0bec5"
-                onFocus={() => setEndFocused(true)}
-                onBlur={() => setEndFocused(false)}
-              />
-              <Text style={styles.inputHint}>End Q#</Text>
-            </View>
-          </View>
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#1e3c72" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+          <Animated.View style={[styles.gridInner, {
+            opacity: listAnim,
+            transform: [{ translateY: listAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+          }]}>
 
-          {validRange && (
-            <View style={styles.rangePill}>
-              <Text style={styles.rangePillText}>
-                📝  {totalQuestions} question{totalQuestions !== 1 ? 's' : ''} selected
-              </Text>
-            </View>
-          )}
+            {categories.map(cat => {
+              const m = META[cat.category] ?? FALLBACK;
+              return (
+                <TouchableOpacity
+                  key={cat.category}
+                  style={[styles.card, { backgroundColor: m.color, borderColor: m.accent + '44' }]}
+                  onPress={() => startCategory(cat.firstId, cat.lastId, cat.category)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cardEmoji}>{m.emoji}</Text>
+                  <Text style={[styles.cardLabel, { color: m.accent }]}>{cat.category}</Text>
+                  <Text style={styles.cardRange}>
+                    Q{cat.firstId}–{cat.lastId}  ·  {cat.count} questions
+                  </Text>
+                  <View style={[styles.cardBadge, { backgroundColor: m.accent }]}>
+                    <Text style={styles.cardBadgeText}>Start →</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
 
-          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-            <TouchableOpacity style={styles.startBtn} onPress={handleBtnPress} activeOpacity={1}>
-              <Text style={styles.startBtnText}>Start Examination</Text>
-              <View style={styles.startBtnArrow}>
-                <Text style={styles.startBtnArrowText}>▶</Text>
+            <TouchableOpacity
+              style={[styles.card, styles.cardAll]}
+              onPress={() => startCategory(1, totalCount, 'Practice All')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardEmoji}>🎯</Text>
+              <Text style={[styles.cardLabel, { color: '#1e3c72' }]}>Practice All</Text>
+              <Text style={styles.cardRange}>Q1–{totalCount}  ·  {totalCount} questions</Text>
+              <View style={[styles.cardBadge, { backgroundColor: '#1e3c72' }]}>
+                <Text style={styles.cardBadgeText}>Start →</Text>
               </View>
             </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
 
-      </ScrollView>
+          </Animated.View>
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#f0f4ff' },
-  scrollContent: { paddingBottom: 32 },
+  container: { flex: 1, backgroundColor: '#f0f4ff' },
+  loader:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   header: {
     backgroundColor: '#1e3c72',
-    paddingTop: 56, paddingBottom: 36, paddingHorizontal: 24,
+    paddingBottom: 28, paddingHorizontal: 24,
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  headerBadge: {
-    alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, marginBottom: 14,
-  },
+  headerBadge:      { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, marginBottom: 14 },
   headerBadgeText:  { color: '#93c5fd', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
   headerTitle:      { color: '#fff', fontSize: 34, fontWeight: '800', lineHeight: 40, marginBottom: 8 },
   headerSub:        { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginBottom: 24 },
@@ -183,43 +158,24 @@ const styles = StyleSheet.create({
   headerStatLabel:  { color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   headerStatDivider:{ width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 8 },
 
+  shuffleToggle:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 18 },
+  shuffleToggleOn:   { backgroundColor: 'rgba(74,222,128,0.25)' },
+  shuffleToggleText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  grid:      { padding: 16, paddingBottom: 32 },
+  gridInner: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+
   card: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20,
-    marginHorizontal: 16, marginBottom: 16,
-    shadowColor: '#1e3c72', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1, shadowRadius: 12, elevation: 5,
+    width: '47%',
+    borderRadius: 20, padding: 18, borderWidth: 2,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    gap: 8,
   },
-  cardHeader:   { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
-  cardIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#e8eeff', alignItems: 'center', justifyContent: 'center' },
-  cardIcon:     { fontSize: 22 },
-  cardTitle:    { fontSize: 16, fontWeight: '800', color: '#1a2340' },
-  cardSub:      { fontSize: 12, color: '#8a9ab5', marginTop: 1 },
-
-  inputRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
-  inputWrap: { flex: 1 },
-  inputLabel:{ fontSize: 10, fontWeight: '800', color: '#8a9ab5', letterSpacing: 1, marginBottom: 6 },
-  input: {
-    borderWidth: 2, borderColor: '#e8edf5', borderRadius: 12,
-    padding: 14, fontSize: 20, fontWeight: '700',
-    color: '#1a2340', textAlign: 'center', backgroundColor: '#f8faff',
-  },
-  inputFocused: { borderColor: '#1e3c72', backgroundColor: '#fff' },
-  inputHint:    { fontSize: 10, color: '#b0bec5', textAlign: 'center', marginTop: 4 },
-  inputArrow:   { paddingTop: 16 },
-  inputArrowText: { fontSize: 20, color: '#b0bec5' },
-
-  rangePill: {
-    backgroundColor: '#e8eeff', borderRadius: 20,
-    paddingVertical: 8, paddingHorizontal: 16,
-    alignSelf: 'center', marginBottom: 16,
-  },
-  rangePillText: { color: '#1e3c72', fontSize: 13, fontWeight: '600' },
-
-  startBtn: {
-    backgroundColor: '#1e3c72', borderRadius: 14, padding: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
-  },
-  startBtnText:      { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
-  startBtnArrow:     { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  startBtnArrowText: { color: '#fff', fontSize: 11 },
+  cardAll:       { width: '100%', backgroundColor: '#e8eeff', borderColor: '#1e3c7244' },
+  cardEmoji:     { fontSize: 32 },
+  cardLabel:     { fontSize: 14, fontWeight: '800', lineHeight: 20 },
+  cardRange:     { fontSize: 11, color: '#8a9ab5', fontWeight: '600' },
+  cardBadge:     { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start', marginTop: 4 },
+  cardBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
 });

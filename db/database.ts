@@ -19,11 +19,15 @@ export interface CategorySummary {
   lastId:   number;
 }
 
-// ── Singleton for imperative access (utils/storage, hooks) ───────────
+// ── Singleton for imperative access (hooks/utils outside React tree) ─
 let _db: SQLiteDatabase | null = null;
-export const setDb  = (db: SQLiteDatabase) => { _db = db; };
-export const getDb  = (): SQLiteDatabase   => {
-  if (!_db) throw new Error('DB not initialised');
+export const setDb = (db: SQLiteDatabase) => { _db = db; };
+export const getDb = (): SQLiteDatabase => {
+  if (!_db) throw new Error(
+    'SQLite DB not initialised yet. ' +
+    'Do not call getDb() before SQLiteProvider has finished onInit. ' +
+    'Prefer useSQLiteContext() inside React components.',
+  );
   return _db;
 };
 
@@ -60,14 +64,15 @@ const SCHEMA = `
     ON questions(category);
 
   CREATE TABLE IF NOT EXISTS history (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    date      TEXT    NOT NULL,
-    start_idx INTEGER NOT NULL,
-    end_idx   INTEGER NOT NULL,
-    correct   INTEGER NOT NULL,
-    total     INTEGER NOT NULL,
-    pct       INTEGER NOT NULL,
-    passed    INTEGER NOT NULL
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    date          TEXT    NOT NULL,
+    start_idx     INTEGER NOT NULL,
+    end_idx       INTEGER NOT NULL,
+    correct       INTEGER NOT NULL,
+    total         INTEGER NOT NULL,
+    pct           INTEGER NOT NULL,
+    passed        INTEGER NOT NULL,
+    session_label TEXT    NOT NULL DEFAULT ''
   );
 `;
 
@@ -109,6 +114,16 @@ export async function reseedFromBundle(db: SQLiteDatabase): Promise<void> {
 export async function initDatabase(db: SQLiteDatabase): Promise<void> {
   setDb(db);
   await db.execAsync(SCHEMA);
+
+  // Migrate existing installs: add session_label column if absent
+  const cols = await db.getAllAsync<{ name: string }>(
+    `PRAGMA table_info(history)`,
+  );
+  if (!cols.some(c => c.name === 'session_label')) {
+    await db.runAsync(
+      `ALTER TABLE history ADD COLUMN session_label TEXT NOT NULL DEFAULT ''`,
+    );
+  }
 
   const seeded = await db.getFirstAsync<{ value: string }>(
     `SELECT value FROM meta WHERE key = 'seeded'`,
@@ -171,11 +186,13 @@ type HRow = {
   id: number; date: string;
   start_idx: number; end_idx: number;
   correct: number; total: number; pct: number; passed: number;
+  session_label: string;
 };
 const mapH = (r: HRow): HistoryEntry => ({
   date: r.date, start: r.start_idx, end: r.end_idx,
   correct: r.correct, total: r.total, pct: r.pct,
   passed: r.passed === 1,
+  label: r.session_label ?? '',
 });
 
 export async function getHistory(db: SQLiteDatabase): Promise<HistoryEntry[]> {
@@ -191,9 +208,9 @@ export async function saveResult(
 ): Promise<void> {
   await db.runAsync(
     `INSERT INTO history
-       (date, start_idx, end_idx, correct, total, pct, passed)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [e.date, e.start, e.end, e.correct, e.total, e.pct, e.passed ? 1 : 0],
+       (date, start_idx, end_idx, correct, total, pct, passed, session_label)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [e.date, e.start, e.end, e.correct, e.total, e.pct, e.passed ? 1 : 0, e.label],
   );
 }
 

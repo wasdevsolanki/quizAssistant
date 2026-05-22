@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { SQLiteProvider } from 'expo-sqlite';
 import OfflineBanner from '../components/OfflineBanner';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { initDatabase } from '../db/database';
 
 SplashScreen.preventAutoHideAsync();
@@ -20,22 +21,24 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.root}>
-      <SQLiteProvider
-        databaseName="quiz.db"
-        onInit={async (db) => {
-          await initDatabase(db);
-          setDbReady(true);
-        }}
-      >
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="quiz"   options={{ headerShown: false }} />
-          <Stack.Screen name="result" options={{ headerShown: false }} />
-        </Stack>
-      </SQLiteProvider>
-      <OfflineBanner />
-    </View>
+    <ErrorBoundary>
+      <View style={styles.root}>
+        <SQLiteProvider
+          databaseName="quiz.db"
+          onInit={async (db) => {
+            await initDatabase(db);
+            setDbReady(true);
+          }}
+        >
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="quiz"   options={{ headerShown: false }} />
+            <Stack.Screen name="result" options={{ headerShown: false }} />
+          </Stack>
+        </SQLiteProvider>
+        <OfflineBanner />
+      </View>
+    </ErrorBoundary>
   );
 }
 

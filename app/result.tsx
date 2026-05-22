@@ -23,11 +23,12 @@ export default function ResultScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const db     = useSQLiteContext();
-  const params = useLocalSearchParams<{ finalScore: string; total: string; startIndex: string; endIndex: string }>();
+  const params = useLocalSearchParams<{ finalScore: string; total: string; startIndex: string; endIndex: string; label: string }>();
   const finalScore = Number(params.finalScore);
   const total = Number(params.total);
   const startIndex = Number(params.startIndex);
   const endIndex = Number(params.endIndex);
+  const label = params.label ?? '';
 
   const wrong: number = total - finalScore;
   const pct: number = Math.round((finalScore / total) * 100);
@@ -47,6 +48,9 @@ export default function ResultScreen() {
     saveResult(db, {
       date: now.toLocaleDateString('en-PK') + ' ' + now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' }),
       start: startIndex, end: endIndex, correct: finalScore, total, pct, passed,
+      label,
+    }).catch(() => {
+      // History save failure is non-fatal; quiz result still shown to user
     });
 
     Animated.stagger(100, [
